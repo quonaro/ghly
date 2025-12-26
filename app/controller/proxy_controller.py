@@ -56,7 +56,7 @@ class ProxyController(Controller):
                 "Cache-Control": "public, max-age=3600, must-revalidate",
                 "X-Cache-Status": "HIT",
             }
-            
+
             if etag:
                 headers["ETag"] = etag
 

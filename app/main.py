@@ -1,6 +1,7 @@
 """Main Litestar application."""
 
 from contextlib import asynccontextmanager
+import os
 
 from litestar import Litestar
 from litestar.di import Provide
@@ -95,8 +96,9 @@ if __name__ == "__main__":
 
     uvicorn.run(
         "main:app",
+        reload=settings.dev,
         host=settings.server_host,
-        reload=True,
         port=settings.server_port,
-        workers=24,
+        workers=os.cpu_count() * 2,
+        log_level="info",
     )

@@ -10,7 +10,7 @@ from litestar import Litestar, Request, Response
 from litestar.di import Provide
 from litestar.datastructures import State
 from litestar.exceptions import NotFoundException
-from litestar.status_codes import HTTP_400_BAD_REQUEST
+
 
 from config.settings import get_settings
 from controller.proxy_controller import ProxyController
@@ -42,14 +42,6 @@ async def get_cache_service(
 
 def not_found_handler(request: Request, exc: NotFoundException) -> Response:
     """Handle 404 errors with custom guidance for /gh paths."""
-    if request.url.path.startswith("/gh"):
-        return Response(
-            content={
-                "status_code": HTTP_400_BAD_REQUEST,
-                "detail": "Invalid API path format. Correct template: /gh/{owner}/{repo}/{path}?ref={branch}",
-            },
-            status_code=HTTP_400_BAD_REQUEST,
-        )
     return Response(
         content={
             "status_code": exc.status_code,

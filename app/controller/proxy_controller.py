@@ -12,9 +12,9 @@ logger = logging.getLogger(__name__)
 class ProxyController(Controller):
     """Controller for handling GitHub file proxy requests."""
 
-    path = "/gh"
+    path = ""
 
-    @get("/{owner:str}/{repo:str}/{path:str}")
+    @get("/{owner:str}/{repo:str}/{path:path}")
     async def proxy_file(
         self,
         owner: str,

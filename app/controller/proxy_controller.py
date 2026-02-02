@@ -38,6 +38,9 @@ class ProxyController(Controller):
             File content with appropriate headers
         """
         try:
+            # Strip leading slash if present (to avoid double slash in keys)
+            path = path.lstrip("/")
+
             # Force cache refresh if requested
             if refresh:
                 await cache_service.invalidate_cache(owner, repo, path, ref)

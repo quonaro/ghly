@@ -1,117 +1,95 @@
-# GHLy
+# 🚀 GHLy: High-Performance GitHub Proxy
 
-Proxy for GitHub raw content with caching and optional restriction to specific repositories.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
+[![Litestar](https://img.shields.io/badge/Framework-Litestar-8000FF.svg)](https://litestar.dev/)
+[![Redis](https://img.shields.io/badge/Cache-Redis-red.svg)](https://redis.io/)
 
-## Quick Start with Docker Compose
+A blazing-fast proxy for GitHub raw content with advanced caching, repository whitelisting, and dynamic cache control.
 
-This is the recommended way to run the application.
+---
 
-### Prerequisites
+## ✨ Features
 
-- Docker
-- Docker Compose
+- ⚡ **High-Speed Proxying**: Built on Litestar for asynchronous processing.
+- 📁 **Adaptive Caching**: supports both **Redis** (production-grade) and **SQLite** (lightweight/local).
+- 🛡️ **Access Control**: Built-in whitelist system to restrict access to specific repositories or organizations.
+- 🔄 **Dynamic Refresh**: Force cache invalidation via simple query parameters.
+- 🐳 **Docker Ready**: Production-optimized Docker and Compose configurations.
 
-### Running the Application
+---
 
-1. **Configure Environment Variables**
+## 🛠 Quick Start
 
-   Create a `.env` file from the example:
-
-   ```bash
-   cp .env.example .env
-   ```
-   
-   Edit `.env` if necessary (e.g., to restrict allowed repositories or change the cache TTL). By default, it works out of the box with `0.0.0.0` as the host.
-
-2. **Start Services**
-
-   Build and start the containers in detached mode:
-
-   ```bash
-   docker-compose up -d --build
-   ```
-
-   This will start:
-   - **Redis** on port `6374` (mapped from container port 6379)
-   - **GHLy App** on port `8000`
-
-3. **Verify Deployment**
-
-   Check if the containers are running:
-
-   ```bash
-   docker-compose ps
-   ```
-
-   Check the logs if needed:
-
-   ```bash
-   docker-compose logs -f
-   ```
-
-### Usage
-
-Once running, the service is available at `http://localhost:8000`.
-
-#### Basic Request Format
-
-The standard format is: `/{owner}/{repo}/{path}`. 
-By default, it fetches from the `main` branch.
-
-**Example:**
+### 1. Configure
+```bash
+cp .env.example .env
 ```
-http://localhost:8000/quonaro/Nest/README.md
+Edit `.env` to set your preferences (allowed repositories, TTL, etc.).
+
+### 2. Launch
+```bash
+docker-compose up -d --build
 ```
+This starts **GHLy** (port 8000) and **Redis** (port 6374).
 
-#### Specifying Branch/Ref
+---
 
-Use the `ref` query parameter to specify a branch, tag, or commit hash.
+## 📖 Usage Guide
 
-**Example:**
-```
-http://localhost:8000/quonaro/Nest/README.md?ref=v1.0.2
-```
+The service is available at `http://localhost:8000`.
 
-#### Forcing Cache Invalidation
+### URL Format
+`/{owner}/{repo}/{path}`
 
-To bypass the cache and fetch a fresh version of the file from GitHub, use the `refresh=true` query parameter.
+### Query Parameters
 
-**Example:**
-```
-http://localhost:8000/quonaro/Nest/README.md?refresh=true
-```
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `ref` | `string` | `main` | Branch, tag, or commit hash. |
+| `refresh` | `boolean`| `false`| If `true`, bypasses cache and fetches fresh content from GitHub. |
 
-#### Complex Paths
+### Examples
 
-The path can include multiple subdirectories.
+| Action | URL |
+| :--- | :--- |
+| **Basic** | `http://localhost:8000/quonaro/Nest/README.md` |
+| **Specific Version** | `http://localhost:8000/quonaro/Nest/README.md?ref=v1.0.2` |
+| **Force Update** | `http://localhost:8000/quonaro/Nest/README.md?refresh=true` |
+| **Deep Path** | `http://localhost:8000/owner/repo/src/utils/logger.py?ref=develop` |
 
-**Example:**
-```
-http://localhost:8000/quonaro/Nest/docs/usage/advanced.md?ref=develop&refresh=true
-```
+---
 
-## Development
+## ⚙️ Configuration
 
-To stop the services:
+Control aspects of GHLy via environment variables:
+
+- `REPOSITORIES`: Comma-separated list of allowed `owner/repo` or organizations. Use empty for unrestricted access.
+- `CACHE_TTL_SECONDS`: How long to keep files in cache (default: 3600s).
+- `USE_REDIS`: Automatic discovery when `REDIS_URL` or `REDIS_HOST` is set.
+
+---
+
+## 🧪 Development
+
+| Command | Description |
+| :--- | :--- |
+| `docker-compose down` | Stop services |
+| `docker-compose down -v` | Stop services and **clear cache** |
+| `uv run app/main.py` | Run locally without Docker |
+
+---
+
+## 📦 Using Pre-built Images
+
+Get up and running instantly with images from GHCR:
 
 ```bash
-docker-compose down
+docker-compose -f compose.ghcr.yml up -d
 ```
 
-To stop and remove volumes (clears Redis data):
+---
 
-```bash
-docker-compose down -v
-```
-
-## Using Pre-built Image (GHCR)
-
-If you prefer to use the pre-built image from GitHub Container Registry instead of building locally:
-
-1.  **Configure `.env`** as described above.
-
-2.  **Start Services**:
-
-    ```bash
-    docker-compose -f compose.ghcr.yml up -d
-    ```
+<div align="center">
+  <sub>Built with ❤️ for the open-source community</sub>
+</div>

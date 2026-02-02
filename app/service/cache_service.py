@@ -105,7 +105,10 @@ class CacheService:
         content = await self.github_repo.download_file(file_info.download_url)
 
         # Store content in repository
-        await self.cache_repo.set_content(owner, repo, path, ref, content)
+        # Store content in repository with a safe buffer (e.g. +30s)
+        # This ensures that if metadata exists, content is guaranteed to be there
+        ttl = self.settings.cache_ttl_seconds
+        await self.cache_repo.set_content(owner, repo, path, ref, content, ttl=ttl + 30)
 
         # Store metadata in repository
         metadata = CacheMetadata(
@@ -114,7 +117,7 @@ class CacheService:
             cached_at=datetime.utcnow(),
             size=file_info.size,
         )
-        await self.cache_repo.set_metadata(owner, repo, path, ref, metadata)
+        await self.cache_repo.set_metadata(owner, repo, path, ref, metadata, ttl=ttl)
 
         return content, file_info.content_type
 

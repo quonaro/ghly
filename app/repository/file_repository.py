@@ -64,10 +64,18 @@ class FileRepository(CacheRepository):
             return None
 
     async def set_metadata(
-        self, owner: str, repo: str, path: str, ref: str, metadata: CacheMetadata
+        self,
+        owner: str,
+        repo: str,
+        path: str,
+        ref: str,
+        metadata: CacheMetadata,
+        ttl: Optional[int] = None,
     ) -> None:
         key = self._make_key(owner, repo, path, ref)
-        expires_at = datetime.utcnow().timestamp() + self.settings.cache_ttl_seconds
+        expires_at = datetime.utcnow().timestamp() + (
+            ttl or self.settings.cache_ttl_seconds
+        )
         expires_at_dt = datetime.fromtimestamp(expires_at)
 
         try:
@@ -108,7 +116,13 @@ class FileRepository(CacheRepository):
             return None
 
     async def set_content(
-        self, owner: str, repo: str, path: str, ref: str, content: bytes
+        self,
+        owner: str,
+        repo: str,
+        path: str,
+        ref: str,
+        content: bytes,
+        ttl: Optional[int] = None,
     ) -> None:
         key = self._make_key(owner, repo, path, ref)
         try:

@@ -107,6 +107,7 @@ class RedisRepository(CacheRepository):
         path: str,
         ref: str,
         metadata: CacheMetadata,
+        ttl: Optional[int] = None,
     ) -> None:
         """Store cache metadata for a file."""
         if not self._client:
@@ -118,14 +119,14 @@ class RedisRepository(CacheRepository):
         try:
             await self._client.setex(
                 key,
-                self.settings.cache_ttl_seconds,
+                ttl or self.settings.cache_ttl_seconds,
                 data,
             )
         except (RedisConnectionError, OSError):
             await self.connect()
             await self._client.setex(
                 key,
-                self.settings.cache_ttl_seconds,
+                ttl or self.settings.cache_ttl_seconds,
                 data,
             )
 
@@ -196,6 +197,7 @@ class RedisRepository(CacheRepository):
         path: str,
         ref: str,
         content: bytes,
+        ttl: Optional[int] = None,
     ) -> None:
         """Store file content in Redis as base64 string."""
         if not self._client:
@@ -205,10 +207,14 @@ class RedisRepository(CacheRepository):
         # Redis client uses decode_responses=True, so encode content as base64 string
         encoded = base64.b64encode(content).decode("utf-8")
         try:
-            await self._client.setex(key, self.settings.cache_ttl_seconds, encoded)
+            await self._client.setex(
+                key, ttl or self.settings.cache_ttl_seconds, encoded
+            )
         except (RedisConnectionError, OSError):
             await self.connect()
-            await self._client.setex(key, self.settings.cache_ttl_seconds, encoded)
+            await self._client.setex(
+                key, ttl or self.settings.cache_ttl_seconds, encoded
+            )
 
     async def delete_content(
         self,

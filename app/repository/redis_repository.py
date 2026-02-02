@@ -116,19 +116,12 @@ class RedisRepository(CacheRepository):
         key = self._make_key(owner, repo, path, ref)
         data = metadata.model_dump_json()
 
+        expiry = ttl if ttl is not None else self.settings.cache_ttl_seconds
         try:
-            await self._client.setex(
-                key,
-                ttl or self.settings.cache_ttl_seconds,
-                data,
-            )
+            await self._client.setex(key, expiry, data)
         except (RedisConnectionError, OSError):
             await self.connect()
-            await self._client.setex(
-                key,
-                ttl or self.settings.cache_ttl_seconds,
-                data,
-            )
+            await self._client.setex(key, expiry, data)
 
     async def delete_metadata(
         self,
@@ -206,15 +199,12 @@ class RedisRepository(CacheRepository):
         key = self._make_content_key(owner, repo, path, ref)
         # Redis client uses decode_responses=True, so encode content as base64 string
         encoded = base64.b64encode(content).decode("utf-8")
+        expiry = ttl if ttl is not None else self.settings.cache_ttl_seconds
         try:
-            await self._client.setex(
-                key, ttl or self.settings.cache_ttl_seconds, encoded
-            )
+            await self._client.setex(key, expiry, encoded)
         except (RedisConnectionError, OSError):
             await self.connect()
-            await self._client.setex(
-                key, ttl or self.settings.cache_ttl_seconds, encoded
-            )
+            await self._client.setex(key, expiry, encoded)
 
     async def delete_content(
         self,

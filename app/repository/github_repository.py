@@ -8,6 +8,13 @@ import httpx
 
 from config.settings import Settings
 from schema.cache import FileInfo
+from dataclasses import dataclass
+
+
+@dataclass
+class FileResponse:
+    info: FileInfo
+    content: bytes
 
 
 class GitHubRepository:
@@ -73,13 +80,13 @@ class GitHubRepository:
 
         return "application/octet-stream"
 
-    async def get_file_info(
+    async def fetch_file(
         self,
         owner: str,
         repo: str,
         path: str,
         ref: str,
-    ) -> Optional[FileInfo]:
+    ) -> Optional[FileResponse]:
         """
         Get file info by downloading from raw.githubusercontent.com.
 
@@ -106,12 +113,15 @@ class GitHubRepository:
 
             download_url = f"{self.settings.github_raw_url}{url}"
 
-            return FileInfo(
-                sha=sha,
-                content_type=content_type,
-                download_url=download_url,
-                size=size,
-                path=path,
+            return FileResponse(
+                info=FileInfo(
+                    sha=sha,
+                    content_type=content_type,
+                    download_url=download_url,
+                    size=size,
+                    path=path,
+                ),
+                content=content,
             )
         except httpx.HTTPStatusError as e:
             if e.response.status_code == 404:

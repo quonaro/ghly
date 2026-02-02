@@ -61,12 +61,12 @@ class CacheService:
         # Check repository for metadata
         metadata = await self.cache_repo.get_metadata(owner, repo, path, ref)
         if not metadata:
-            logger.info(
-                f"Cache MISS: no metadata in Redis for {owner}/{repo}/{path}@{ref}"
-            )
+            # logger.info(
+            #     f"Cache MISS: no metadata in Redis for {owner}/{repo}/{path}@{ref}"
+            # )
             return None
 
-        logger.info(f"Cache metadata found in Redis for {owner}/{repo}/{path}@{ref}")
+        # logger.info(f"Cache metadata found in Redis for {owner}/{repo}/{path}@{ref}")
 
         # Get file content from repository
         content = await self.cache_repo.get_content(owner, repo, path, ref)
@@ -79,9 +79,9 @@ class CacheService:
             return None
 
         # Cache hit
-        logger.info(
-            f"Cache HIT: serving {owner}/{repo}/{path}@{ref} (size: {len(content)} bytes)"
-        )
+        # logger.info(
+        #     f"Cache HIT: serving {owner}/{repo}/{path}@{ref} (size: {len(content)} bytes)"
+        # )
         return content, metadata.content_type
 
     async def cache_file(
@@ -96,13 +96,13 @@ class CacheService:
 
         Raises exception if file cannot be fetched from GitHub.
         """
-        # Get file info from GitHub
-        file_info = await self.github_repo.get_file_info(owner, repo, path, ref)
-        if not file_info:
+        # Fetch file info and content in one go
+        file_response = await self.github_repo.fetch_file(owner, repo, path, ref)
+        if not file_response:
             raise FileNotFoundError(f"File not found: {owner}/{repo}/{path}@{ref}")
 
-        # Download file content
-        content = await self.github_repo.download_file(file_info.download_url)
+        file_info = file_response.info
+        content = file_response.content
 
         # Store content in repository
         # Store content in repository with a safe buffer (e.g. +30s)
@@ -162,8 +162,9 @@ class CacheService:
         # Try to get from cache first
         cached = await self.get_cached_file(owner, repo, path, ref)
         if cached:
-            content, content_type = cached
-            return content, content_type
+            return cached
+
+        logger.info(f"Cache MISS: {owner}/{repo}/{path}@{ref}")
 
         # Not in cache - acquire lock to prevent concurrent downloads
         lock_key = self._get_lock_key(owner, repo, path, ref)
@@ -177,8 +178,7 @@ class CacheService:
                 logger.info(
                     f"Cache HIT after lock: {owner}/{repo}/{path}@{ref} was cached by concurrent request"
                 )
-                content, content_type = cached
-                return content, content_type
+                return cached
 
             # Still not in cache, fetch and cache
             logger.info(f"Fetching and caching {owner}/{repo}/{path}@{ref} from GitHub")

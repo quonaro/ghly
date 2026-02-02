@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     cache_file_path: str = "ghly.cache"
 
     # Whitelist configuration
-    repositories: list[str] = []  # List of repository URLs or owner/repo strings
+    repositories: list[str] | str = []  # List of repository URLs or owner/repo strings
 
     @field_validator("repositories", mode="before")
     @classmethod

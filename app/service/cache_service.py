@@ -34,10 +34,12 @@ class CacheService:
         if not self.settings.repositories:
             return True
 
-        target = f"{owner}/{repo}"
+        target = f"{owner}/{repo}".lower()
         for whitelisted in self.settings.repositories:
-            # Handle both owner/repo and full URLs
-            if target.lower() in whitelisted.lower():
+            whitelisted_normalized = whitelisted.lower()
+            # If whitelist entry is a URL, it might contain the target owner/repo
+            # If whitelist entry is just owner or owner/repo, it might be part of the target
+            if whitelisted_normalized in target or target in whitelisted_normalized:
                 return True
         return False
 

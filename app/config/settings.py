@@ -10,11 +10,11 @@ class Settings(BaseSettings):
     github_raw_url: str = "https://raw.githubusercontent.com"
 
     # Redis configuration
-    redis_host: str = "localhost"
+    redis_host: str | None = None
     redis_port: int = 6379
     redis_db: int = 0
     redis_password: str | None = None
-    redis_url: str | None = None  # If set, overrides host/port/db/password
+    redis_url: str | None = None
 
     # Cache configuration
     cache_ttl_seconds: int = 300  # 5 minutes default

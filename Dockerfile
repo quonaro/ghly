@@ -9,6 +9,10 @@ RUN pip install --no-cache-dir uv
 # Enable bytecode compilation
 ENV UV_COMPILE_BYTECODE=1
 
+# Configure the virtual environment
+ENV VIRTUAL_ENV=/app/.venv
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
 # Copy project files
 COPY pyproject.toml uv.lock ./
 

@@ -1,9 +1,14 @@
 """Main Litestar application."""
 
+import sys
+import uvicorn
+import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from litestar import Litestar, Request, Response
 from litestar.di import Provide
+from litestar.datastructures import State
 from litestar.exceptions import NotFoundException
 from litestar.status_codes import HTTP_400_BAD_REQUEST
 
@@ -15,31 +20,15 @@ from repository.redis_repository import RedisRepository
 from repository.file_repository import FileRepository
 from service.cache_service import CacheService
 
-# Global instances for lifecycle management
-_cache_repo: CacheRepository | None = None
-_github_repo: GitHubRepository | None = None
+
+async def get_cache_repository(state: State) -> CacheRepository:
+    """Dependency: Get cache repository instance from app state."""
+    return state.cache_repo
 
 
-async def get_cache_repository() -> CacheRepository:
-    """Dependency: Get cache repository instance (Redis or File)."""
-    global _cache_repo
-    if _cache_repo is None:
-        settings = get_settings()
-        if settings.use_redis:
-            _cache_repo = RedisRepository(settings)
-            await _cache_repo.connect()
-        else:
-            _cache_repo = FileRepository(settings)
-    return _cache_repo
-
-
-async def get_github_repository() -> GitHubRepository:
-    """Dependency: Get GitHub repository instance."""
-    global _github_repo
-    if _github_repo is None:
-        settings = get_settings()
-        _github_repo = GitHubRepository(settings)
-    return _github_repo
+async def get_github_repository(state: State) -> GitHubRepository:
+    """Dependency: Get GitHub repository instance from app state."""
+    return state.github_repo
 
 
 async def get_cache_service(
@@ -87,26 +76,36 @@ def permission_error_handler(request: Request, exc: PermissionError) -> Response
 
 @asynccontextmanager
 async def lifespan(app: Litestar):
-    """Application lifespan context manager."""
-    # Startup
+    """Application lifespan context manager for initializing resources."""
     settings = get_settings()
-    global _cache_repo, _github_repo
 
+    # Initialize repositories
+    logger = logging.getLogger("ghly.main")
     if settings.use_redis:
-        _cache_repo = RedisRepository(settings)
-        await _cache_repo.connect()
+        repo_target = (
+            settings.redis_url or f"{settings.redis_host}:{settings.redis_port}"
+        )
+        logger.info(f"Using Redis cache at {repo_target}")
+        cache_repo = RedisRepository(settings)
+        await cache_repo.connect()
     else:
-        _cache_repo = FileRepository(settings)
+        logger.info(f"Using SQLite cache at {settings.cache_file_path}")
+        cache_repo = FileRepository(settings)
 
-    _github_repo = GitHubRepository(settings)
+    github_repo = GitHubRepository(settings)
+
+    # Store in app state
+    app.state.cache_repo = cache_repo
+    app.state.github_repo = github_repo
 
     yield
 
-    # Shutdown
-    if _cache_repo:
-        await _cache_repo.disconnect()
-    if _github_repo:
-        await _github_repo.close()
+    # Cleanup
+    if hasattr(app.state, "cache_repo"):
+        await app.state.cache_repo.disconnect()
+
+    if hasattr(app.state, "github_repo"):
+        await app.state.github_repo.close()
 
 
 def create_app() -> Litestar:
@@ -132,10 +131,6 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    import sys
-    import uvicorn
-    from pathlib import Path
-
     # Add app directory to path for imports
     app_dir = Path(__file__).parent
     if str(app_dir) not in sys.path:

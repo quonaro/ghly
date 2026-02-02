@@ -127,9 +127,40 @@ class FileRepository(CacheRepository):
         key = self._make_key(owner, repo, path, ref)
         try:
             with sqlite3.connect(self.db_path) as conn:
-                conn.execute(
-                    "UPDATE cache SET content = ? WHERE key = ?", (content, key)
+                # Use UPSERT to handle both new and existing entries
+                # If key doesn't exist, insert with NULL metadata (will be filled by set_metadata)
+                # If key exists, update content and optionally expiry
+                expiry_sql = (
+                    ", expires_at = excluded.expires_at" if ttl is not None else ""
                 )
+
+                if ttl is not None:
+                    expires_at = datetime.utcnow().timestamp() + ttl
+                    expires_at_dt = datetime.fromtimestamp(expires_at)
+                    # For INSERT values: key, content, expires_at_dt
+                    # For UPDATE set: no extra params needed as we use excluded.content/excluded.expires_at
+                    params = (key, content, expires_at_dt)
+                    sql = f"""
+                        INSERT INTO cache (key, content, expires_at)
+                        VALUES (?, ?, ?)
+                        ON CONFLICT(key) DO UPDATE SET
+                            content = excluded.content
+                            {expiry_sql}
+                     """
+                else:
+                    expires_at = (
+                        datetime.utcnow().timestamp() + self.settings.cache_ttl_seconds
+                    )
+                    expires_at_dt = datetime.fromtimestamp(expires_at)
+                    params = (key, content, expires_at_dt)
+                    sql = """
+                        INSERT INTO cache (key, content, expires_at)
+                        VALUES (?, ?, ?)
+                        ON CONFLICT(key) DO UPDATE SET
+                            content = excluded.content
+                    """
+
+                conn.execute(sql, params)
                 conn.commit()
         except Exception as e:
             logger.error(f"Error writing content to SQLite: {e}")

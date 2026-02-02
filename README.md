@@ -53,13 +53,42 @@ This is the recommended way to run the application.
 
 Once running, the service is available at `http://localhost:8000`.
 
-Example request:
+#### Basic Request Format
 
+The standard format is: `/{owner}/{repo}/{path}`. 
+By default, it fetches from the `main` branch.
+
+**Example:**
 ```
-http://localhost:8000/quonaro/Nest/main/README.md
+http://localhost:8000/quonaro/Nest/README.md
 ```
 
-This will fetch `README.md` from the `main` branch of `quonaro/Nest`, caching the result in Redis.
+#### Specifying Branch/Ref
+
+Use the `ref` query parameter to specify a branch, tag, or commit hash.
+
+**Example:**
+```
+http://localhost:8000/quonaro/Nest/README.md?ref=v1.0.2
+```
+
+#### Forcing Cache Invalidation
+
+To bypass the cache and fetch a fresh version of the file from GitHub, use the `refresh=true` query parameter.
+
+**Example:**
+```
+http://localhost:8000/quonaro/Nest/README.md?refresh=true
+```
+
+#### Complex Paths
+
+The path can include multiple subdirectories.
+
+**Example:**
+```
+http://localhost:8000/quonaro/Nest/docs/usage/advanced.md?ref=develop&refresh=true
+```
 
 ## Development
 

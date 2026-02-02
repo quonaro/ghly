@@ -10,10 +10,6 @@ from litestar import Litestar, Request, Response
 from litestar.di import Provide
 from litestar.datastructures import State
 from litestar.exceptions import NotFoundException
-from litestar.openapi import OpenAPIConfig
-from litestar.openapi.spec import Contact
-from litestar import get
-from litestar.response import Redirect
 
 
 from config.settings import get_settings
@@ -48,20 +44,11 @@ def not_found_handler(request: Request, exc: NotFoundException) -> Response:
     """Handle 404 errors with custom guidance for /gh paths."""
     return Response(
         content={
-            "status_code": exc.status_code,
-            "detail": exc.detail,
-            "message": "Endpoint not found. Use /{owner}/{repo}/{path} to proxy files.",
-            "example": f"{request.url.scheme}://{request.url.netloc}/owner/repo/path/to/file.ext",
-            "documentation": f"{request.url.scheme}://{request.url.netloc}/docs",
+            "status_code": 404,
+            "detail": "Invalid Format. Expected: /{owner}/{repo}/{path}",
         },
-        status_code=exc.status_code,
+        status_code=404,
     )
-
-
-@get("/", include_in_schema=False)
-async def root_handler() -> Redirect:
-    """Redirect root to API documentation."""
-    return Redirect(path="/docs")
 
 
 def permission_error_handler(request: Request, exc: PermissionError) -> Response:
@@ -118,7 +105,7 @@ def create_app() -> Litestar:
     settings = get_settings()
     return Litestar(
         debug=settings.dev,
-        route_handlers=[root_handler, ProxyController],
+        route_handlers=[ProxyController],
         dependencies={
             "cache_repo": Provide(get_cache_repository),
             "github_repo": Provide(get_github_repository),
@@ -128,12 +115,6 @@ def create_app() -> Litestar:
             NotFoundException: not_found_handler,
             PermissionError: permission_error_handler,
         },
-        openapi_config=OpenAPIConfig(
-            title="GHLY - GitHub Proxy",
-            version="0.1.0",
-            path="/docs",
-            contact=Contact(name="Support", url="https://github.com/quonaro/ghly"),
-        ),
         lifespan=[lifespan],
     )
 
